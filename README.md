@@ -1,5 +1,7 @@
 # Secure E-Voting System
 
+![E-Voting System](https://static.scientificamerican.com/sciam/cache/file/CF393A78-1DF6-4D70-BF862AC7CA0ACC02_source.jpg)  
+
 This repository contains the implementation of a **Secure Electronic Voting System** leveraging advanced cryptographic techniques to ensure privacy, security, and transparency. The system is based on a multi-authority election scheme and incorporates features such as **homomorphic encryption**, **digital signatures**, and **threshold decryption** for a robust voting process.
 
 ---
@@ -10,13 +12,19 @@ This repository contains the implementation of a **Secure Electronic Voting Syst
 - Each voter encrypts their choice (e.g., Yes/No) using a **homomorphic encryption algorithm**.
 - The encryption guarantees that the tally of votes can be computed **without decrypting individual votes**, ensuring vote secrecy.
 
+![Homomorphic Encryption](https://www.collidu.com/media/catalog/product/img/0/1/01e118345635520609a7d48b3d7f64b4446ecd2031f9352eb1bd8200e7d5d8f3/homomorphic-encryption-slide1.png)  
+
 ### 2. **Digital Signatures**
 - Voters sign the cryptogram (encrypted vote) using digital signatures.
 - This signature proves that the vote originates from an authorized voter, maintaining the system's integrity.
 
+![Digital Signature](https://www.digitalsignaturemart.com/wp-content/uploads/2019/03/Digital-Signature-1688x844.png)
+
 ### 3. **Multi-Authority Setup**
 - To mitigate risks of vote decryption by a dishonest authority, the decryption key is distributed across **multiple parties** using a **Shamir (t, n)-threshold scheme**.
 - At least `t` out of `n` parties must collaborate to reveal the vote tally, ensuring no single authority can compromise the system.
+
+![Shamir's Threshold Scheme](https://slideplayer.com/slide/17207435/99/images/21/Shamir%E2%80%99s%2BThreshold%2BScheme%2Bset%2Bup.jpg)
 
 ### 4. **Trusted Setup and Decentralization**
 - Initially, a **trusted center** is assumed to set up the system by choosing necessary cryptographic parameters (e.g., primes `p` and `q`).
@@ -25,6 +33,8 @@ This repository contains the implementation of a **Secure Electronic Voting Syst
 ### 5. **Public-Key Infrastructure**
 - A **public-key infrastructure (PKI)** is used to authenticate messages and guarantee the origin of all posted data.
 - This ensures that only legitimate participants can interact with the system.
+
+![Public Key Infrastructure](https://certera.com/blog/wp-content/uploads/2023/04/how-pki-public-key-infrastructure-works-jpg.webp)
 
 ---
 

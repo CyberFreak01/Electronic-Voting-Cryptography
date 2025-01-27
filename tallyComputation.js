@@ -1,10 +1,11 @@
 const axios = require('axios');
+const bigInt = require('bigint-crypto-utils');
 
 // const trustedAuthorityServer = 'http://localhost:3000';
 // const server = 'http://localhost:5000';
 
-const trustedAuthorityServer = 'http://192.168.214.253:3000';
-const server = 'http://192.168.214.128:5000';
+const trustedAuthorityServer = 'http://localhost:3000';
+const server = 'http://localhost:5000';
 
 async function requestPrivateKey() {
     try {
@@ -17,162 +18,80 @@ async function requestPrivateKey() {
 }
 
 async function fetchSystemData() {
-  try {
-    //   const privateKeyResonse = await axios.get(`${trustedAuthorityServer}/prikey`);
-      const pubKeyResponse = await axios.get(`${trustedAuthorityServer}/pubkey`);
-      const alphabetResponse = await axios.get(`${trustedAuthorityServer}/alphabet`);
-      
-      const pubKey = pubKeyResponse.data.publicKey
-    //   const priKey = privateKeyResonse.data.privateKey;
-      const alphabet = alphabetResponse.data.alphabet;
+    try {
+        const pubKeyResponse = await axios.get(`${trustedAuthorityServer}/pubkey`);
+        const pubKey = pubKeyResponse.data.publicKey;
 
-    //   return { priKey, alphabet, pubKey };
-      return { alphabet, pubKey };
-  } catch (error) {
-      console.error('Failed to fetch system data:', error.message);
-      return null;
-  }
+        return { pubKey };
+    } catch (error) {
+        console.error('Failed to fetch system data:', error.message);
+        return null;
+    }
 }
 
-function modInv(gen, mod) {
-    var v, d, u, t, c, q;
-    v = 1;
-    d = gen;
-    t = 1;
-    c = mod % gen;
-    u = Math.floor(mod / gen);
-    while (d > 1) {
-        q = Math.floor(d / c);
-        d = d % c;
-        v = v + q * u;
-        if (d) {
-            q = Math.floor(c / d);
-            c = c % d;
-            u = u + q * v;
-        }
-    }
-    return d ? v : mod - u;
+function decrypt(cipherText, privateKey) {
+    const { lambda, mu, n } = privateKey;
+    const nSquared = n ** 2n;
+
+    // L((cipherText^λ mod n^2) - 1) / n
+    const l = (x) => (x - 1n) / n;
+    const u = bigInt.modPow(cipherText, lambda, nSquared);
+    return (l(u) * mu) % n;
 }
 
-function modPow(base, exp, mod) {
-    var c, x;
-    if (exp === 0) {
-        return 1;
-    } else if (exp < 0) {
-        exp = -exp;
-        base = modInv(base, mod);
+function add(cipherText1, cipherText2, publicKey) {
+    const { nSquared } = publicKey;
+    const nSquaredBigInt = BigInt(nSquared);
+
+    let cp1 = cipherText1;
+    let cp2 = cipherText2;
+    if (typeof cp1 !== 'bigint') {
+        cp1 = BigInt(cp1.encryptedVote);
     }
-    c = 1;
-    while (exp > 0) {
-        if (exp % 2 === 0) {
-            base = (base * base) % mod;
-            exp /= 2;
-        } else {
-            c = (c * base) % mod;
-            exp--;
-        }
+
+    if (typeof cp2 !== 'bigint') {
+        cp2 = BigInt(cp2.encryptedVote);
     }
-    return c;
+
+    return (cp1 * cp2) % nSquaredBigInt;
 }
 
-function to10(x, alphabet) {
-    var y, p, n;
-    y = 0;
-    p = 1;
-    x = x.split("");
-    n = x.length;
-    while (n--) {
-        y += alphabet.indexOf(x[n]) * p;
-        p *= alphabet.length;
-    }
-    return y;
-}
-
-function decrypt(a, key, alphabet, p) {
-    var d, x, y;
-    x = a[1];
-    y = modPow(a[0], -key, p);
-    d = (x * y) % p;
-    d = Math.round(d) % p;
-    d %= alphabet.length;
-    return alphabet[d - 2];
-}
-
-function g(message, key, alphabet, p) {
-    var n, m, d, x;
-    m = [];
-    n = message.length / 8;
-    while (n--) {
-        x = message[8 * n + 4];
-        x += message[8 * n + 5];
-        x += message[8 * n + 6];
-        x += message[8 * n + 7];
-        m.unshift(x);
-        x = message[8 * n];
-        x += message[8 * n + 1];
-        x += message[8 * n + 2];
-        x += message[8 * n + 3];
-        m.unshift(x);
-    }
-    x = [];
-    d = [];
-    n = m.length / 2;
-    while (n--) {
-        x[0] = m[2 * n];
-        x[1] = m[2 * n + 1];
-        x[0] = to10(x[0], alphabet);
-        x[1] = to10(x[1], alphabet);
-        d.push(decrypt(x, key, alphabet, p));
-    }
-    message = d.join("");
-    return message;
-}
 
 async function computeTally() {
     try {
         const systemData = await fetchSystemData();
         if (!systemData) {
-            console.error("Failed to retrieve system data.");
-            return;
+            return res.status(500).json({ message: 'Failed to retrieve system data' });
         }
 
-        // const { priKey, pubKey, alphabet } = systemData;
-        const { pubKey, alphabet } = systemData;
-        const p = pubKey[0];
-
+        const { pubKey } = systemData;
         const response = await axios.get(`${server}/votes`);
         const votes = response.data;
+        let encryptedsum = 177994745951696127216181011143719888824770344853315796468312441326024499042532782272050400668696493962652358692943795964805055806915593883760284403647945978451897345804066705710298642045140581603073855993343403707077833680567741064350745370395121225706428373480411932346734367226872866816816929401680382859985281058083990196243886967102657377951096711455402669346439051974027866689304421237632512761462680526830008929465253592794961649720573179059751590018959809333747262283395844010145132140902318014970720687771634601355486890864252334198470912542631744484784327694042561274650253403632857184822131394410610476442207197105391158448413336079700599260281050077375196517058846686760996022883784753654900564554253557185628434395844953306340221726856848593688105382083778396911236604249675934953455009206079039653867087269770119804181118643748325263580087097602439339525995994374770476704166599516952342256471105126794074312827459599526064514983022648458640913450231890684913085811043055682222467962578160726930370473668347551901387613056219043305445108693854994002094457883312456847744425123652373728796599368680422558115755997163566983649204136986875967584896991325417964767332619605745997299579049565310661019419637580270203615515362n;
+        for (let vote of votes) {
+            encryptedsum = add(encryptedsum, vote, pubKey);
+        }
+
+        console.log("Encrypted Tally:", encryptedsum);
 
         // Request private key approval
+        console.log("Requesting private key approval for decryption of tally...");
         const privateKeyRequest = await requestPrivateKey();
-        const priKey = privateKeyRequest.privateKey;
+        let priKey = privateKeyRequest.privateKey;
 
         if (!priKey) {
             console.error("Private key reconstruction failed.");
             return;
         }
 
-        let tally = {
-            contestant1: 0,
-            contestant2: 0,
-            contestant3: 0,
-        };
+        priKey.lambda = BigInt(priKey.lambda);
+        priKey.mu = BigInt(priKey.mu);
+        priKey.n = BigInt(priKey.n);
 
-        for (let vote of votes) {
-            const encryptedVote = vote.encryptedVote;
+        const ans = decrypt(encryptedsum, priKey);
+        console.log("Decrypted Tally:", ans);
 
-            const decryptedVote = g(encryptedVote, priKey, alphabet, p);
-
-            if (decryptedVote === '1') {
-                tally.contestant1++;
-            } else if (decryptedVote === '-1') {
-                tally.contestant2++;
-            } else if (decryptedVote === '0') {
-                tally.contestant3++;
-            }
-        }
-
-        return tally;
+        return ans;
 
     } catch (error) {
         console.error('Failed to compute tally:', error);

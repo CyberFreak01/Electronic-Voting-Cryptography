@@ -5,10 +5,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "client" : "nodemon client.js",
-    "server" : "nodemon server.js",
-    "tallyComputation" : "nodemon tallyComputation.js",
-    "trustedAuthority" : "nodemon trustedAuthority.js"
+    "client": "nodemon client.js",
+    "server": "nodemon server.js",
+    "tallyComputation": "nodemon tallyComputation.js",
+    "trustedAuthority": "nodemon trustedAuthority.js"
   },
   "keywords": [],
   "author": "",
@@ -17,9 +17,11 @@
   "dependencies": {
     "axios": "^1.7.9",
     "big-integer": "^1.6.52",
+    "bigint-crypto-utils": "^3.3.0",
     "body-parser": "^1.20.3",
     "crypto": "^1.0.1",
     "express": "^4.21.2",
+    "express-fileupload": "^1.5.1",
     "mongoose": "^8.9.5",
     "nodemon": "^3.1.9",
     "secrets.js": "^0.1.8",

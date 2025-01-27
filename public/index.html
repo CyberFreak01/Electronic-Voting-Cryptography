@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Contestant Voting System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .contestants {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .contestant {
+            border: 1px solid #ddd;
+            padding: 20px;
+            width: 40%;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        #message, #error, #registration-section {
+            margin-top: 20px;
+        }
+        #message { color: green; }
+        #error { color: red; }
+        #voter-id, #register-btn {
+            margin: 10px;
+            padding: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Secure Voting System</h1>
+
+    <!-- Registration Section -->
+    <div id="registration-section">
+        <h2>Voter Registration</h2>
+        <input type="text" id="voter-id" placeholder="Enter Voter ID">
+        <button id="register-btn" onclick="registerVoter()">Register</button>
+    </div>
+
+    <!-- Voting Section (Initially Hidden) -->
+    <div id="voting-section" class="hidden">
+        <div class="contestants">
+            <div class="contestant">
+                <h2>Contestant A</h2>
+                <button onclick="castVote(1)">Vote for A</button>
+            </div>
+            <div class="contestant">
+                <h2>Contestant B</h2>
+                <button onclick="castVote(-1)">Vote for B</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="message"></div>
+    <div id="error"></div>
+
+    <script>
+        // State management
+        let currentVoterId = null;
+        let currentPrivateKey = null;
+
+        async function registerVoter() {
+            const voterIdInput = document.getElementById('voter-id');
+            const messageEl = document.getElementById('message');
+            const errorEl = document.getElementById('error');
+            const voterId = voterIdInput.value.trim();
+
+            // Clear previous messages
+            messageEl.textContent = '';
+            errorEl.textContent = '';
+
+            if (!voterId) {
+                errorEl.textContent = 'Please enter a Voter ID';
+                return;
+            }
+
+            try {
+                const response = await fetch('/registerVoter', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ voterId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Store voter credentials securely (in real-world, use more secure storage)
+                    currentVoterId = voterId;
+                    currentPrivateKey = data.privateKey;
+
+                    // Hide registration, show voting
+                    document.getElementById('registration-section').classList.add('hidden');
+                    document.getElementById('voting-section').classList.remove('hidden');
+
+                    messageEl.textContent = 'Registration successful! You can now vote.';
+                } else {
+                    errorEl.textContent = data.message || 'Registration failed';
+                }
+            } catch (error) {
+                errorEl.textContent = 'Network error. Please try again.';
+                console.error('Registration error:', error);
+            }
+        }
+
+        async function castVote(vote) {
+            const messageEl = document.getElementById('message');
+            const errorEl = document.getElementById('error');
+            
+            // Clear previous messages
+            messageEl.textContent = '';
+            errorEl.textContent = '';
+
+            // Ensure voter is registered
+            if (!currentVoterId || !currentPrivateKey) {
+                errorEl.textContent = 'Please register first';
+                return;
+            }
+
+            try {
+                const response = await fetch('/castVote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        vote, 
+                        voterId: currentVoterId,
+                        privateKeyPem: currentPrivateKey
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    messageEl.textContent = data.message || 'Vote cast successfully!';
+                    
+                    // Disable voting after successful vote
+                    document.getElementById('voting-section').classList.add('hidden');
+                } else {
+                    errorEl.textContent = data.message || 'Failed to cast vote';
+                }
+            } catch (error) {
+                errorEl.textContent = 'Network error. Please try again.';
+                console.error('Vote casting error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

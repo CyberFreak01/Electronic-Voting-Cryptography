@@ -97,7 +97,3 @@ This repository contains the implementation of a **Secure Electronic Voting Syst
 This system is based on the theoretical framework introduced in the research paper by **[CraGenSch97]**, which outlines the secure multi-authority election scheme.
 
 ---
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
